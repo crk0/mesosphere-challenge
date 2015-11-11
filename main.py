@@ -5,8 +5,8 @@ class Elevator():
 		'''
 		self._id 			= id;
 		self._currentFloor 	= currentFloor
-		self._goalFloor 	= set()
-		self._dir 			= 0
+		self._goalFloor 	= list()
+		self._dir 			= 0 # -1 for down, +1 for up and 0 for stationary
 
 	def status(self):
 		''' Return triple representing state of elevator,
@@ -21,11 +21,10 @@ class Elevator():
 		self._currentFloor = currentFloor
 
 		# remove currentFloor from goalFloor if it exists
-		if currentFloor in self._goalFloor:
-			self._goalFloor.remove(currentFloor)
+		self._goalFloor = [floor for floor in self._goalFloor if floor != currentFloor]
 
 		# add the new goal floors
-		self._goalFloor.union(set(goalFloors))
+		self._goalFloor.append(goalFloors)
 
 class ElevatorControlSystem():
 	def __init__(self, numElevators):
@@ -44,7 +43,7 @@ class ElevatorControlSystem():
 		# Retrieve elevator with correct id
 		curElevator
 		for elevator in self._elevators:
-			if elevator._id = id:
+			if elevator._id == id:
 				curElevator = elevator
 				break;
 
@@ -56,3 +55,39 @@ class ElevatorControlSystem():
 			consisting of the pickupFloor and direction
 		'''
 		self._pickupRequests.add((pickupFloor, direction))
+
+	def step(self):
+		''' Represents one simulation tick. Process pickup requests 
+			and then move all elevators by 1 floor as required.
+		'''
+
+		newPickupRequests = self._pickupRequests[:]
+		for pickup in self.pickupRequests:
+			# First check if pickup request floor exists as goal floor
+			# for existing elevator
+			for id, currentFloor, goalFloors in self.status():
+				if pickup[0] in goalFloors:
+					# Remove request since elevator already stopping there
+					newPickupRequests.remove(pickup)
+					break;
+
+		self._pickupRequests = newPickupRequests
+
+		# Update elevator states
+		for id, currentFloor, goalFloors in self.status():
+			if len(goalFloors) > 0:
+				nextFloor = self.findNextFloor(currentFloor, goalFloors)
+				newGoalFloors = [request[0] for request in self._pickupRequests]
+				self.update(id, nextFloor, newGoalFloors)
+
+	def findNextFloor(self, currentFloor, goalFloors):
+		# temporary naive fcfs
+		if goalFloors[0] > currentFloor:
+			currentFloor += 1
+		else:
+			currentFloor -= 1
+
+		return currentFloor
+
+if __name__ == "__main__":
+	pass
