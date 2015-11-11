@@ -26,6 +26,21 @@ class Elevator():
 		# add the new goal floors
 		self._goalFloor += goalFloors
 
+	def findNextFloor(self):
+		# temporary naive fcfs
+		if len(self._goalFloor) == 0:
+			return self._currentFloor
+
+		newFloor = self._currentFloor
+		if self._goalFloor > self._currentFloor:
+			# Going up
+			newFloor += 1
+		else:
+			# Going down
+			newFloor -= 1
+
+		return newFloor		
+
 class ElevatorControlSystem():
 	def __init__(self, numElevators):
 		# initialise numElevators instances of Elevator()
@@ -54,28 +69,19 @@ class ElevatorControlSystem():
 		''' Represents one simulation tick. Process pickup requests 
 			and then move all elevators by 1 floor as required.
 		'''
+		for elevator in self._elevators:
+			if len(self._pickupRequests) > 0:
+				request = self._pickupRequests.pop()
+				self.update(elevator._id, elevator.findNextFloor(), [request[0]])
+				return
+			elif len(elevator._goalFloor) == 0:
+				# No requests and no goal floors, therefore nothing to do
+				continue
+			self.update(elevator._id, elevator.findNextFloor(), [])
 
-		# Update elevator states
-		for id, currentFloor, goalFloors in self.status():
-			nextFloor = self.findNextFloor(currentFloor, goalFloors)
-			newGoalFloors = [request[0] for request in self._pickupRequests]
-			self._pickupRequests = set()
-			self.update(id, nextFloor, newGoalFloors)
-
-	def findNextFloor(self, currentFloor, goalFloors):
-		# temporary naive fcfs
-		if len(goalFloors) == 0:
-			return currentFloor
-
-		if goalFloors[0] > currentFloor:
-			currentFloor += 1
-		else:
-			currentFloor -= 1
-
-		return currentFloor
 
 if __name__ == "__main__":
-	ecs = ElevatorControlSystem(1)
+	ecs = ElevatorControlSystem(2)
 	print ecs.status()
 	ecs.pickup(2, 1)
 	print ecs.status()
