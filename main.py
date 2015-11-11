@@ -24,7 +24,7 @@ class Elevator():
 		self._goalFloor = [floor for floor in self._goalFloor if floor != currentFloor]
 
 		# add the new goal floors
-		self._goalFloor.append(goalFloors)
+		self._goalFloor += goalFloors
 
 class ElevatorControlSystem():
 	def __init__(self, numElevators):
@@ -40,14 +40,8 @@ class ElevatorControlSystem():
 	def update(self, id, currentFloor, goalFloors):
 		''' Update the state of elevator with ID=id
 		'''
-		# Retrieve elevator with correct id
-		curElevator
-		for elevator in self._elevators:
-			if elevator._id == id:
-				curElevator = elevator
-				break;
-
-		curElevator.update(currentFloor, goalFloors)
+		# Update elevator with correct id
+		self._elevators[id].update(currentFloor, goalFloors)
 
 	def pickup(self, pickupFloor, direction):
 		''' Add pickup request to pickupRequests queue.
@@ -61,27 +55,18 @@ class ElevatorControlSystem():
 			and then move all elevators by 1 floor as required.
 		'''
 
-		newPickupRequests = self._pickupRequests[:]
-		for pickup in self.pickupRequests:
-			# First check if pickup request floor exists as goal floor
-			# for existing elevator
-			for id, currentFloor, goalFloors in self.status():
-				if pickup[0] in goalFloors:
-					# Remove request since elevator already stopping there
-					newPickupRequests.remove(pickup)
-					break;
-
-		self._pickupRequests = newPickupRequests
-
 		# Update elevator states
 		for id, currentFloor, goalFloors in self.status():
-			if len(goalFloors) > 0:
-				nextFloor = self.findNextFloor(currentFloor, goalFloors)
-				newGoalFloors = [request[0] for request in self._pickupRequests]
-				self.update(id, nextFloor, newGoalFloors)
+			nextFloor = self.findNextFloor(currentFloor, goalFloors)
+			newGoalFloors = [request[0] for request in self._pickupRequests]
+			self._pickupRequests = set()
+			self.update(id, nextFloor, newGoalFloors)
 
 	def findNextFloor(self, currentFloor, goalFloors):
 		# temporary naive fcfs
+		if len(goalFloors) == 0:
+			return currentFloor
+
 		if goalFloors[0] > currentFloor:
 			currentFloor += 1
 		else:
@@ -90,4 +75,18 @@ class ElevatorControlSystem():
 		return currentFloor
 
 if __name__ == "__main__":
-	pass
+	ecs = ElevatorControlSystem(1)
+	print ecs.status()
+	ecs.pickup(2, 1)
+	print ecs.status()
+	ecs.step()
+	print ecs.status()
+	ecs.step()
+	ecs.pickup(4, 1)
+	print ecs.status()
+	ecs.step()
+	print ecs.status()
+	ecs.step()
+	print ecs.status()
+	ecs.step()
+	print ecs.status()
