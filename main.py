@@ -5,14 +5,13 @@ class Elevator():
 		'''
 		self._id 			= id;
 		self._currentFloor 	= currentFloor
-		self._goalFloor 	= list()
-		self._dir 			= 0 # -1 for down, +1 for up and 0 for stationary
+		self._goalFloors 	= list()
 
 	def status(self):
 		''' Return triple representing state of elevator,
 			state(id, current_floor, goal_floor)
 		'''
-		return (self._id, self._currentFloor, self._goalFloor)
+		return (self._id, self._currentFloor, self._goalFloors)
 
 	def update(self, currentFloor, goalFloors):
 		''' Update the state of the elevator
@@ -21,25 +20,48 @@ class Elevator():
 		self._currentFloor = currentFloor
 
 		# remove currentFloor from goalFloor if it exists
-		self._goalFloor = [floor for floor in self._goalFloor if floor != currentFloor]
+		self._goalFloors = [floor for floor in self._goalFloors if floor[0] != currentFloor]
 
 		# add the new goal floors
-		self._goalFloor += goalFloors
+		self._goalFloors += goalFloors
 
 	def findNextFloor(self):
-		# temporary naive fcfs
-		if len(self._goalFloor) == 0:
+		if len(self._goalFloors) == 0:
 			return self._currentFloor
 
-		newFloor = self._currentFloor
-		if self._goalFloor > self._currentFloor:
-			# Going up
-			newFloor += 1
-		else:
-			# Going down
-			newFloor -= 1
+		if len(self._goalFloors) > 1:
+			# Find optimal goal floor
+			goalFloor, _ = self._goalFloors[0];
+			if goalFloor > self._currentFloor:
+				direction = 1
+			else:
+				direction = -1
 
-		return newFloor		
+			goalFloors = self._goalFloors[:]
+			for gf in self._goalFloors:
+				# If the goal floor request direction matches the direction
+				# of the elevator, prioritise that floor.
+				if gf[1] == direction:
+					# If elevator is going down
+					if direction < 0 and gf[0] < self._currentFloor:
+						goalFloors.remove(gf)
+						# find first position such that new floor is larger than goal floor
+						for i in range(0, len(goalFloors)):
+							if gf[0] >= goalFloors[i][0]:
+								goalFloors.insert(i, gf)
+								break
+					# If elevator is going up
+					if direction > 0 and gf[0] > self._currentFloor:
+						goalFloors.remove(gf)
+						# find first position such that new floor is smaller than goal floor
+						for i in range(0, len(goalFloors)):
+							if gf[0] <= goalFloors[i][0]:
+								goalFloors.insert(i, gf)
+								break
+
+			self._goalFloors = goalFloors
+
+		return self._goalFloors[0][0]
 
 class ElevatorControlSystem():
 	def __init__(self, numElevators):
@@ -67,28 +89,29 @@ class ElevatorControlSystem():
 
 	def step(self):
 		''' Represents one simulation tick. Process pickup requests 
-			and then move all elevators by 1 floor as required.
+			and then move all elevators as required.
 		'''
 		for elevator in self._elevators:
 			if len(self._pickupRequests) > 0:
 				request = self._pickupRequests.pop()
-				self.update(elevator._id, elevator.findNextFloor(), [request[0]])
+				self.update(elevator._id, elevator.findNextFloor(), [request])
 				return
-			elif len(elevator._goalFloor) == 0:
+			elif len(elevator._goalFloors) == 0:
 				# No requests and no goal floors, therefore nothing to do
 				continue
 			self.update(elevator._id, elevator.findNextFloor(), [])
 
 
 if __name__ == "__main__":
-	ecs = ElevatorControlSystem(2)
+	ecs = ElevatorControlSystem(1)
 	print ecs.status()
 	ecs.pickup(2, 1)
+	ecs.pickup(4, 0)
 	print ecs.status()
 	ecs.step()
 	print ecs.status()
+	ecs.pickup(1,1)
 	ecs.step()
-	ecs.pickup(4, 1)
 	print ecs.status()
 	ecs.step()
 	print ecs.status()
