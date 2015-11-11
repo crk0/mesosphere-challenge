@@ -1,3 +1,5 @@
+import sys
+
 class Elevator():
 	def __init__(self, id, currentFloor=0):
 		''' A new elevator having ID=id, current floor = 0 (ground floor)
@@ -67,7 +69,7 @@ class ElevatorControlSystem():
 	def __init__(self, numElevators):
 		# initialise numElevators instances of Elevator()
 		self._elevators 	 = [Elevator(id) for id in range(0,numElevators)]
-		self._pickupRequests = set()
+		self._pickupRequests = list()
 
 	def status(self):
 		''' Return a list of all states of the elevators 
@@ -85,7 +87,7 @@ class ElevatorControlSystem():
 			A pickup request is represented as a tuple 
 			consisting of the pickupFloor and direction
 		'''
-		self._pickupRequests.add((pickupFloor, direction))
+		self._pickupRequests.append((pickupFloor, direction))
 
 	def step(self):
 		''' Represents one simulation tick. Process pickup requests 
@@ -93,8 +95,9 @@ class ElevatorControlSystem():
 		'''
 		for elevator in self._elevators:
 			if len(self._pickupRequests) > 0:
-				request = self._pickupRequests.pop()
-				self.update(elevator._id, elevator.findNextFloor(), [request])
+				#request = self._pickupRequests.pop()
+				self.update(elevator._id, elevator.findNextFloor(), self._pickupRequests)
+				self._pickupRequests = []
 				return
 			elif len(elevator._goalFloors) == 0:
 				# No requests and no goal floors, therefore nothing to do
@@ -102,20 +105,35 @@ class ElevatorControlSystem():
 			self.update(elevator._id, elevator.findNextFloor(), [])
 
 
-if __name__ == "__main__":
+def basic_test():
+	''' This test starts the elevator on floor 4. It then proceeds
+		to add pickup requests in a certain order.
+		The simulation is stepped through and the floors the elevator
+		goes to are checked. The order should be 4,3,2,1,5
+	'''
 	ecs = ElevatorControlSystem(1)
-	print ecs.status()
-	ecs.pickup(2, 1)
-	ecs.pickup(4, 0)
-	print ecs.status()
+	
+	ecs.pickup(4, -1)
 	ecs.step()
-	print ecs.status()
-	ecs.pickup(1,1)
 	ecs.step()
-	print ecs.status()
-	ecs.step()
-	print ecs.status()
-	ecs.step()
-	print ecs.status()
-	ecs.step()
-	print ecs.status()
+	ecs.pickup(1, 1)
+	ecs.pickup(5, -1)
+	ecs.pickup(3, -1)
+	ecs.pickup(2, -1)
+
+	floor_order = [4,3,2,1,5]
+	for i in range(5):
+		ecs.step()
+		id, curFloor, goalFloor = ecs.status()[0]
+		if curFloor != floor_order[i]:
+			print "Test Failed!"
+			return 0
+
+	print "Test Passed!"
+	return 1
+
+if __name__ == "__main__":
+	if len(sys.argv) > 1:
+		if sys.argv[1] == "-t":
+			# Run test
+			basic_test()
